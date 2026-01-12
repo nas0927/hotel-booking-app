@@ -1,106 +1,191 @@
-<script>
-const API = "https://script.google.com/macros/s/AKfycbw6wpte6_x4CCFD6adhdkh7Rsy9TWdje3sghYkl6TdY_sYqnS_u4Os7sciS6kGu_YxC/exec"; // your deployed Web App URL
-let editId = null; // tracks current booking being edited
-let bookings = []; // store fetched bookings
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hotel Booking App</title>
 
-// Save new or updated booking
-function save() {
-  const data = {
-    action: editId ? "update" : "create",
-    id: editId,
-    guest: document.getElementById("guest").value,
-    room: document.getElementById("room").value,
-    checkin: document.getElementById("checkin").value,
-    checkout: document.getElementById("checkout").value,
-    rate: Number(document.getElementById("rate").value)
-  };
-
-  // Basic validation
-  if (!data.guest || !data.room || !data.checkin || !data.checkout || !data.rate) {
-    alert("Please fill all fields correctly.");
-    return;
-  }
-
-  fetch(API, {
-    method: "POST",
-    body: JSON.stringify(data)
-  })
-  .then(res => res.json())
-  .then(res => {
-    alert(res.message || res.status);
-    clearForm();
-    loadBookings();
-  })
-  .catch(err => alert("Error: " + err));
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f7f9fb;
+  margin: 0;
+  padding: 0;
 }
 
-// Load all bookings from the sheet
-function loadBookings() {
-  fetch(API, {
+h2 {
+  text-align: center;
+  margin: 20px;
+  color: #333;
+}
+
+.form-container {
+  max-width: 420px;
+  margin: auto;
+  background: #e8f5e9;
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+label {
+  font-weight: bold;
+  margin-top: 10px;
+  display: block;
+}
+
+input, select {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  border-radius: 8px;
+  border: 1px solid #c8e6c9;
+  font-size: 15px;
+}
+
+button {
+  width: 100%;
+  margin-top: 15px;
+  padding: 12px;
+  background: #81c784;
+  border: none;
+  color: white;
+  font-size: 16px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #66bb6a;
+}
+
+#list {
+  max-width: 600px;
+  margin: 20px auto;
+}
+
+.card {
+  background: #e3f2fd;
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+</style>
+</head>
+
+<body>
+
+<h2>Hotel Booking</h2>
+
+<div class="form-container">
+  <label>Guest Name</label>
+  <input id="guest">
+
+  <label>Room</label>
+  <select id="room">
+    <option value="301">301</option>
+    <option value="302">302</option>
+    <option value="303">303</option>
+    <option value="304">304</option>
+    <option value="305">305</option>
+    <option value="306">306</option>
+    <option value="307">307</option>
+    <option value="314">314 (Suite)</option>
+    <option value="315">315 (Suite)</option>
+    <option value="316">316 (Suite)</option>
+  </select>
+
+  <label>Check-in</label>
+  <input type="date" id="checkin">
+
+  <label>Check-out</label>
+  <input type="date" id="checkout">
+
+  <label>Rate per night</label>
+  <input type="number" id="rate">
+
+  <button onclick="saveBooking()">Save vvBooking</button>
+  <button onclick="testBackend()">Test Backend</button>
+
+</div>
+
+<div id="list"></div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbw6wpte6_x4CCFD6adhdkh7Rsy9TWdje3sghYkl6TdY_sYqnS_u4Os7sciS6kGu_YxC/exec"; // your deployed Web App URL"; // replace with your Apps Script URL
+
+function testBackend() {
+  fetch(API_URL, {
     method: "POST",
-    body: JSON.stringify({ action: "list" })
+    body: new URLSearchParams({ action: "list" })
+  })
+  .then(r => r.text())
+  .then(t => alert(t))
+  .catch(e => alert("ERROR: " + e));
+}
+
+/* ======================
+   SAVE BOOKING (FORM POST)
+====================== */
+function saveBooking() {
+  const params = new URLSearchParams();
+  params.append("action", "create");
+  params.append("guest", document.getElementById("guest").value);
+  params.append("room", document.getElementById("room").value);
+  params.append("checkin", document.getElementById("checkin").value);
+  params.append("checkout", document.getElementById("checkout").value);
+  params.append("rate", document.getElementById("rate").value);
+
+  fetch(API_URL, {
+    method: "POST",
+    body: params
+  })
+  .then(() => {
+    alert("Booking saved successfully");
+    clearForm();
+    loadBookings();
+  });
+}
+
+/* ======================
+   LOAD BOOKINGS
+====================== */
+function loadBookings() {
+  fetch(API_URL, {
+    method: "POST",
+    body: new URLSearchParams({ action: "list" })
   })
   .then(res => res.json())
   .then(rows => {
-    bookings = rows;
     const list = document.getElementById("list");
     list.innerHTML = "";
+
     rows.forEach(r => {
-      list.innerHTML += `
-        <div class="card">
-          <b>${r[1]}</b> – Room ${r[2]}<br>
-          ${formatDate(r[3])} → ${formatDate(r[4])}<br>
-          Rate: ${r[6]} | Total: ${r[7]}<br>
-          <button onclick="editBooking('${r[0]}')">Edit</button>
-          <button onclick="deleteBooking('${r[0]}')">Delete</button>
-        </div>`;
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <b>${r[1]}</b><br>
+        Room: ${r[2]}<br>
+        ${new Date(r[3]).toLocaleDateString()} →
+        ${new Date(r[4]).toLocaleDateString()}<br>
+        Rate: ${r[6]} | Total: ${r[7]}
+      `;
+      list.appendChild(card);
     });
   });
 }
 
-// Edit booking: fill the form with selected booking
-function editBooking(id) {
-  const b = bookings.find(r => r[0] === id);
-  if (!b) return;
-
-  editId = b[0];
-  document.getElementById("guest").value = b[1];
-  document.getElementById("room").value = b[2];
-  document.getElementById("checkin").value = toInputDate(b[3]);
-  document.getElementById("checkout").value = toInputDate(b[4]);
-  document.getElementById("rate").value = b[6];
-}
-
-// Delete booking
-function deleteBooking(id) {
-  if (!confirm("Are you sure you want to delete this booking?")) return;
-
-  fetch(API, {
-    method: "POST",
-    body: JSON.stringify({ action: "delete", id })
-  })
-  .then(() => loadBookings());
-}
-
-// Clear form after saving or canceling
+/* ======================
+   HELPERS
+====================== */
 function clearForm() {
-  editId = null;
-  document.getElementById("guest").value = "";
-  document.getElementById("room").value = "";
-  document.getElementById("checkin").value = "";
-  document.getElementById("checkout").value = "";
-  document.getElementById("rate").value = "";
+  guest.value = "";
+  rate.value = "";
 }
 
-// Helpers to format dates
-function formatDate(d) {
-  return new Date(d).toLocaleDateString();
-}
-
-function toInputDate(d) {
-  return new Date(d).toISOString().split("T")[0];
-}
-
-// Initial load of bookings
-loadBookings();
+window.onload = loadBookings;
 </script>
+
+</body>
+</html>
